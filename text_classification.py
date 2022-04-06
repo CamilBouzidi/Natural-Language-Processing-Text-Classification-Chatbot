@@ -3,7 +3,19 @@ import numpy as np
 from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.preprocessing import LabelEncoder
 from collections import Counter
+import matplotlib.pyplot as plt
 import spacy
+
+def create_features(text):
+    doc = nlp(text)
+    pos_list = [token.tag_ for token in doc] # Create a list with all the POS tags in the text
+    pos_count_dict = Counter(pos_list) # Count the number of POS tags withing the POS list
+    entity_list = [token.label_ for token in doc.ents] # Create a list with all the entities within the text
+    ent_count_dict = Counter(entity_list) #Count the number of entity types withing the entity list
+    root_lemma =  [token.lemma_ for token in doc if token.dep_ == "ROOT"][0]# Lemma of the root token in the text
+    sentence_length = sum(len(token) for token in doc) # Length of the text (number of characters within the text)
+
+    return [root_lemma, pos_count_dict['WP'], pos_count_dict["WRB"], ent_count_dict["PERSON"], ent_count_dict["GPE"], ent_count_dict['ORG'], sentence_length]
 
 nlp = spacy.load("en_core_web_sm")
 corpus = [
@@ -33,15 +45,11 @@ clf.fit(feature_mtrx, y)
 
 q = "Where is Canada"
 
-clf.predict(q)
+q_vect = np.array([create_features(q)])
+q_vect[:, 0] = le.transform(q_vect[:, 0])
 
-def create_features(text):
-    doc = nlp(text)
-    pos_list = [] # Create a list with all the POS tags in the text
-    pos_count_dict = Counter(pos_list) # Count the number of POS tags withing the POS list
-    entity_list = [] # Create a list with all the entities within the text
-    ent_count_dict = Counter(entity_list) #Count the number of entity types withing the entity list
-    root_lemma =  # Lemma of the root token in the text
-    sentence_length = # Length of the text (number of characters within the text)
+print(clf.predict(q_vect))
 
-    return [root_lemma, pos_count_dict['WP'], pos_count_dict["WRB"], ent_count_dict["PERSON"], ent_count_dict["GPE"], ent_count_dict['ORG'], sentence_length]
+plt.figure()
+plot_tree(clf, filled=True, feature_names=["root", "wp_count", "wrb_count", "person", "gre", "org", "length"])
+plt.show()
